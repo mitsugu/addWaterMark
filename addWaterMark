@@ -2,16 +2,33 @@
 
 if [ $# -lt 2 ]; then
 	echo "Usage :"
-	echo "    addWaterMark filename output_directory_path"
-	echo "                 filename : a file Name"
+	echo "    addWaterMark <filename> <output_directory_path> [configfile_full_path]"
+	echo "                 filename              : a file Name"
 	echo "                 output_directory_path : output directory path name."
 	echo "                                         not file path."
+	echo "                 configfile_full_path  : Optional"
+	echo "                                         full path of configuration file"
+	echo "                                         default is \"$HOME/.addWaterMark.conf\""
 	exit 0
 fi
 
 if [ ! -d ${2} ]; then
 	echo "Not found directory!! Specify an existing directory."
 	exit 1
+fi
+
+if [ ${#} -eq 3 ]; then
+	if [ ! -e ${3} ]; then
+		echo "Not found configuration file!!."
+		exit 1
+	fi
+	confpath="${3}"
+else
+	confpath="${HOME}""/.addWaterMark.conf"
+	if [ ! -e ${confpath} ]; then
+		echo "Not found configuration file!!."
+		exit 1
+	fi
 fi
 
 createFrame() { #{{{
@@ -33,10 +50,13 @@ createFrame() { #{{{
 	#	15 : -Artist
 	# }
 
-	font=Noto-Sans-CJK-JP
-	fontsize=96
-	fontcolor=white
-	username="Satomi Oyama"
+	# read configuration file
+	declare -A settings
+	eval settings=(`cat ${2}`)
+	username=${settings["username"]}
+	font=${settings["fontface"]}
+	fontsize=${settings["fontsize"]}
+	fontcolor=${settings["fontcolor"]}
 
 	ftype=$(echo "${1}" | cut -f 2)
 	orient=$(echo "${1}" | cut -f 3)
@@ -90,7 +110,7 @@ mergeImage() { # {{{
 echo "Just a second..."
 
 data=$(exiftool -s -T -FileName -FileType -Orientation -ImageWidth -ImageHeight -DateTimeOriginal -Model -Make -LensModel -LensID -FNumber -ShutterSpeed -ISO -Copyright -Artist "${1}" | column -d -s "\t")
-createFrame "${data}"
+createFrame "${data}" "${confpath}"
 mergeImage ${1} ${2}
 
 echo "Done!!"

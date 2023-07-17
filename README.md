@@ -12,11 +12,14 @@ Apply watermarks to images.
 * [exiftool](https://exiftool.org/)
 
 ## Install
-Make the script addWaterMark executable and place it in a directory in your path.  
+1. Give execute permission to addWaterMark.
+2. Place addWaterMark in the directory specified in the $PATH environment variable.
+3. Copy .addWaterMark.conf to $HOME.
+4. Edit  .addWaterMark.conf
 
 ## Usage
 ``` bash
-$ addWaterMark file_name output_directory_name
+$ addWaterMark <file_name> <output_directory_name> [configration_file_full_path_name]
 ```
 ## Sample
 <img src="https://i.imgur.com/xhIrBQD.jpg"><br>
