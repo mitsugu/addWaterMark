@@ -1,0 +1,97 @@
+#! /bin/bash
+
+if [ $# -lt 2 ]; then
+	echo "Usage :"
+	echo "    addWaterMark filename output_directory_path"
+	echo "                 filename : a file Name"
+	echo "                 output_directory_path : output directory path name."
+	echo "                                         not file path."
+	exit 0
+fi
+
+if [ ! -d ${2} ]; then
+	echo "Not found directory!! Specify an existing directory."
+	exit 1
+fi
+
+createFrame() { #{{{
+	# data {
+	#	 1 : -FileName
+	#	 2 : -FileType
+	#	 3 : -Orientation
+	#	 4 : -ImageWidth
+	#	 5 : -ImageHeight
+	#	 6 : -DateTimeOriginal
+	#	 7 : -Model
+	#	 8 : -Make
+	#	 9 : -LensModel
+	#	10 : -LensID
+	#	11 : -FNumber
+	#	12 : -ShutterSpeed
+	#	13 : -ISO
+	#	14 : -Copyright
+	#	15 : -Artist
+	# }
+
+	font=Noto-Sans-CJK-JP
+	fontsize=96
+	fontcolor=white
+	username="Satomi Oyama"
+
+	ftype=$(echo "${1}" | cut -f 2)
+	orient=$(echo "${1}" | cut -f 3)
+	flg=`expr "${orient}" : "^Rotate"`
+	if  [ ${flg} -eq 0 ] ; then
+		width=$(echo "${1}" | cut -f 4)
+		height=$(echo "${1}" | cut -f 5)
+	else
+		width=$(echo "${1}" | cut -f 5)
+		height=$(echo "${1}" | cut -f 4)
+	fi
+
+	camera=$(echo "${1}" | cut -f 7)
+	lens=$(echo "${1}" | cut -f 9)
+	if [ "${lens}" == "" -o "${lens}" == "-" ]; then
+		lens=$(echo "${1}" | cut -f 10)
+	fi
+	fnum=$(echo "${1}" | cut -f 11)
+	ss=$(echo "${1}" | cut -f 12)
+	iso=$(echo "${1}" | cut -f 13)
+	copyright=$(echo "${1}" | cut -f 14)
+	artist=$(echo "${1}" | cut -f 15)
+	if [ "${copyright}" != "" ] && [ "${copyright}" != "-" ];then
+		author="${copyright}"
+	elif [ "${artist}" != "" ] && [ "${artist}" != "-" ];then
+		author="${artist}"
+	else
+		author="${username}"
+	fi
+
+	date=$( echo "${1}" | cut -f 6 | cut -d " " -f 1)
+	year=$( echo "${date}" | cut -d ":" -f 1 )
+	txt="© ""${author}"" ""${year}""\n""${camera}""\n""${lens}""\n F""${fnum}""  ""${ss}""s  ISO""${iso}"
+	convert -size ${width}x${height} xc:none webp:- |
+	convert - \
+			-pointsize "${fontsize}" \
+			-font ${font} \
+			-fill ${fontcolor} \
+			-gravity southwest \
+			-annotate +64+64 "${txt}" \
+			-quality 100 \
+			tmp1.webp
+} # }}}
+
+mergeImage() { # {{{
+	convert ${1} -auto-orient -quality 100 webp:- | \
+	convert - tmp1.webp -compose over -composite ${2}"/"${1}
+	rm tmp1.webp
+} # }}}
+
+echo "Just a second..."
+
+data=$(exiftool -s -T -FileName -FileType -Orientation -ImageWidth -ImageHeight -DateTimeOriginal -Model -Make -LensModel -LensID -FNumber -ShutterSpeed -ISO -Copyright -Artist "${1}" | column -d -s "\t")
+createFrame "${data}"
+mergeImage ${1} ${2}
+
+echo "Done!!"
+
